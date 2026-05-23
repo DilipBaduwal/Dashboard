@@ -1,5 +1,5 @@
 import {
-  BrowserRouter,
+  HashRouter,
   Routes,
   Route,
   Navigate,
@@ -17,7 +17,7 @@ import BottomNav from './components/BottomNav'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="min-h-screen bg-[#F5F7FA]">
         <Routes>
           <Route
@@ -37,6 +37,6 @@ export default function App() {
 
         <BottomNav />
       </div>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
