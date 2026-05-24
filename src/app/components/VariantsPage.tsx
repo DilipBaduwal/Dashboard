@@ -29,7 +29,7 @@ const variants: Variant[] = [
   },
   {
     id: 'Rise summary',
-    name: 'Rise-Summary',
+    name: 'Rise-SC',
     description: 'Section and circle Level dashboard',
     icon: TrendingUp,
     gradient: 'from-emerald-600 via-green-500 to-teal-400',
