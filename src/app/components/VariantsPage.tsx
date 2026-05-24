@@ -29,9 +29,9 @@ const variants: Variant[] = [
   },
   {
     id: 'Rise summary',
-    name: 'Rise score summary',
+    name: 'Rise-Summary',
     description: 'Section and circle Level dashboard',
-    icon: DollarSign,
+    icon: TrendingUp,
     gradient: 'from-emerald-600 via-green-500 to-teal-400',
     path: '/sales-dashboard',
   },
