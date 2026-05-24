@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Bell, User, ChevronDown, RotateCcw, RefreshCw, ArrowRight } from 'lucide-react';
+import { Search, Bell, User, ChevronDown, RotateCcw, RefreshCw, ArrowRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 // Header Component
@@ -318,6 +318,8 @@ const buildGrandTotalRow = (rows: SummaryRow[]): SummaryRow => {
 function DataTable({ type, filters }: DataTableProps) {
   const [rows, setRows] = useState<RiseRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortColumn, setSortColumn] = useState<'label' | 'weithage' | 'score' | 'scorePercent' | 'rank' | null>('scorePercent');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     let active = true;
@@ -385,6 +387,57 @@ function DataTable({ type, filters }: DataTableProps) {
   const summaryRows = data.filter((row) => !row.isGrandTotal);
   const grandTotalRow = data.find((row) => row.isGrandTotal) ?? null;
 
+  const handleSort = (column: 'label' | 'weithage' | 'score' | 'scorePercent' | 'rank') => {
+    if (sortColumn === column) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const getSortIcon = (column: typeof sortColumn) => {
+    if (sortColumn !== column) return <ArrowUpDown className="w-3.5 h-3.5 opacity-30" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-primary" /> : <ArrowDown className="w-3.5 h-3.5 text-primary" />;
+  };
+
+  const displayedSummaryRows = useMemo(() => {
+    if (!sortColumn) return summaryRows;
+    const copy = [...summaryRows];
+    copy.sort((a, b) => {
+      let av: string | number = '';
+      let bv: string | number = '';
+
+      switch (sortColumn) {
+        case 'label':
+          av = a.label;
+          bv = b.label;
+          break;
+        case 'weithage':
+          av = a.weithage;
+          bv = b.weithage;
+          break;
+        case 'score':
+          av = a.score;
+          bv = b.score;
+          break;
+        case 'scorePercent':
+          av = a.scorePercent;
+          bv = b.scorePercent;
+          break;
+        case 'rank':
+          av = a.rank ?? 999999;
+          bv = b.rank ?? 999999;
+          break;
+      }
+
+      const dir = sortDirection === 'asc' ? 1 : -1;
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+    return copy;
+  }, [summaryRows, sortColumn, sortDirection]);
+
   return (
     <div className="h-full flex flex-col bg-card">
       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
@@ -411,25 +464,55 @@ function DataTable({ type, filters }: DataTableProps) {
           <table className="w-full">
             <thead className="sticky top-0 bg-muted/50 backdrop-blur-sm z-10">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground border-b border-border">
-                  Row Labels
+                <th
+                  onClick={() => handleSort('label')}
+                  className="px-4 py-3 text-left text-xs font-medium text-muted-foreground border-b border-border cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span>Row Labels</span>
+                    {getSortIcon('label')}
+                  </div>
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground border-b border-border whitespace-nowrap">
-                  Weithage
+                <th
+                  onClick={() => handleSort('weithage')}
+                  className="px-4 py-3 text-right text-xs font-medium text-muted-foreground border-b border-border whitespace-nowrap cursor-pointer"
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    <span>Weithage</span>
+                    {getSortIcon('weithage')}
+                  </div>
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground border-b border-border">
-                  Score
+                <th
+                  onClick={() => handleSort('score')}
+                  className="px-4 py-3 text-right text-xs font-medium text-muted-foreground border-b border-border cursor-pointer"
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    <span>Score</span>
+                    {getSortIcon('score')}
+                  </div>
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground border-b border-border whitespace-nowrap">
-                  Score%
+                <th
+                  onClick={() => handleSort('scorePercent')}
+                  className="px-4 py-3 text-right text-xs font-medium text-muted-foreground border-b border-border whitespace-nowrap cursor-pointer"
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    <span>Score%</span>
+                    {getSortIcon('scorePercent')}
+                  </div>
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground border-b border-border">
-                  Rank
+                <th
+                  onClick={() => handleSort('rank')}
+                  className="px-4 py-3 text-right text-xs font-medium text-muted-foreground border-b border-border cursor-pointer"
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    <span>Rank</span>
+                    {getSortIcon('rank')}
+                  </div>
                 </th>
               </tr>
             </thead>
             <tbody>
-              {summaryRows.map((row, index) => (
+              {displayedSummaryRows.map((row, index) => (
                 <tr
                   key={index}
                   className="hover:bg-muted/30 transition-colors border-b border-border/50 last:border-b-0"
