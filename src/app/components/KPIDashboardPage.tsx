@@ -1,139 +1,346 @@
-import { useNavigate } from 'react-router';
-import { ArrowLeft, Target, TrendingUp, Activity, Zap } from 'lucide-react';
+import { useEffect, useMemo, useState } from "react";
+import { Download, Search, Bell, Menu } from "lucide-react";
+import { supabase } from "../../lib/supabase";
+import { AndroidFilters } from "./AndroidFilters";
+import { EnterpriseDataGrid } from "./EnterpriseDataGrid";
 
-const kpiCards = [
-  { label: 'Revenue Growth', value: '32.5%', status: 'Excellent', color: 'from-purple-500 to-cyan-500' },
-  { label: 'Customer Satisfaction', value: '94', status: 'Good', color: 'from-cyan-500 to-blue-500' },
-  { label: 'Market Share', value: '28%', status: 'Excellent', color: 'from-purple-600 to-fuchsia-500' },
-  { label: 'Net Promoter Score', value: '78', status: 'Good', color: 'from-indigo-500 to-purple-500' },
-];
+interface KpiRow {
+  id: string;
+  circleNew: string;
+  sectionNew: string;
+  agendas: string;
+  state: string;
+  cat: string;
+  weithage: string | number;
+  tgt: string | number;
+  ach: string | number;
+  achPct: string | number;
+  score: string | number;
+}
 
-const departments = [
-  { name: 'Sales', score: 92, progress: 92 },
-  { name: 'Marketing', score: 87, progress: 87 },
-  { name: 'Operations', score: 95, progress: 95 },
-  { name: 'Customer Service', score: 89, progress: 89 },
-  { name: 'Product', score: 91, progress: 91 },
-];
+const rowText = (value: unknown) => {
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
+};
 
-export default function KPIDashboardPage() {
-  const navigate = useNavigate();
+const pickValue = (
+  row: Record<string, unknown>,
+  keys: string[],
+): string | number => {
+  for (const key of keys) {
+    const value = row[key];
+    if (value !== null && value !== undefined) {
+      if (typeof value === "string") {
+        if (value.trim() !== "") {
+          return value;
+        }
+      } else if (typeof value === "number") {
+        return value;
+      } else if (String(value).trim() !== "") {
+        return String(value);
+      }
+    }
+  }
+
+  return "";
+};
+
+const toKpiRow = (row: Record<string, unknown>, index: number): KpiRow => ({
+  id: rowText(pickValue(row, ["id", "ID"])) || `row-${index + 1}`,
+  circleNew: rowText(
+    pickValue(row, ["Circle New", "circle_new", "circleNew", "circle"]),
+  ),
+  sectionNew: rowText(
+    pickValue(row, ["Section New", "section_new", "sectionNew", "section"]),
+  ),
+  agendas: rowText(
+    pickValue(row, ["Agendas", "agenda", "agendas", "Agenda"]),
+  ),
+  state: rowText(pickValue(row, ["State", "state"])),
+  cat: rowText(pickValue(row, ["Cat", "cat", "category"])),
+  weithage: pickValue(row, ["Weithage", "weithage", "weightage"]),
+  tgt: pickValue(row, ["Tgt", "tgt", "target"]),
+  ach: pickValue(row, ["Ach", "ach"]),
+  achPct: pickValue(row, ["ACH %", "ACH%", "achPct", "ach_pct"]),
+  score: pickValue(row, ["Score", "score"]),
+});
+
+export default function App() {
+  const [rows, setRows] = useState<KpiRow[]>([]);
+  const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedAgendas, setSelectedAgendas] = useState<string[]>([]);
+  const [selectedSections, setSelectedSections] = useState<string[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadRows = async () => {
+      setIsLoading(true);
+
+      const queries = ["Rise", "rise"];
+      let fetchedRows: Record<string, unknown>[] = [];
+      let fetchError: unknown = null;
+
+      for (const tableName of queries) {
+        const { data, error } = await supabase.from(tableName).select("*");
+
+        if (!error) {
+          fetchedRows = (data ?? []) as Record<string, unknown>[];
+          fetchError = null;
+          break;
+        }
+
+        fetchError = error;
+      }
+
+      if (!isActive) return;
+
+      if (fetchError) {
+        console.error("Failed to fetch Rise data:", fetchError);
+        setRows([]);
+        setIsLoading(false);
+        return;
+      }
+
+      setRows(fetchedRows.map((row, index) => toKpiRow(row, index)));
+      setIsLoading(false);
+    };
+
+    loadRows();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const checkMobile = () =>
+      setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () =>
+      window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const filterOptions = useMemo(() => {
+    const uniqueValues = (values: string[]) =>
+      Array.from(new Set(values.filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b),
+      );
+
+    return {
+      circles: uniqueValues(rows.map((row) => row.circleNew)),
+      states: uniqueValues(rows.map((row) => row.state)),
+      categories: uniqueValues(rows.map((row) => row.cat)),
+      agendas: uniqueValues(rows.map((row) => row.agendas)),
+      sections: uniqueValues(rows.map((row) => row.sectionNew)),
+    };
+  }, [rows]);
+
+  const filteredData = rows.filter((row) => {
+    if (
+      selectedCircles.length > 0 &&
+      !selectedCircles.includes(row.circleNew)
+    )
+      return false;
+    if (
+      selectedStates.length > 0 &&
+      !selectedStates.includes(row.state)
+    )
+      return false;
+    if (
+      selectedCategories.length > 0 &&
+      !selectedCategories.includes(row.cat)
+    )
+      return false;
+    if (
+      selectedAgendas.length > 0 &&
+      !selectedAgendas.includes(row.agendas)
+    )
+      return false;
+    if (
+      selectedSections.length > 0 &&
+      !selectedSections.includes(row.sectionNew)
+    )
+      return false;
+
+    if (globalSearch) {
+      const searchLower = globalSearch.toLowerCase();
+      return Object.values(row).some((val) =>
+        String(val).toLowerCase().includes(searchLower),
+      );
+    }
+
+    return true;
+  });
+
+  const activeFilterCount =
+    selectedCircles.length +
+    selectedStates.length +
+    selectedCategories.length +
+    selectedAgendas.length +
+    selectedSections.length;
+
+  const clearAllFilters = () => {
+    setSelectedCircles([]);
+    setSelectedStates([]);
+    setSelectedCategories([]);
+    setSelectedAgendas([]);
+    setSelectedSections([]);
+  };
+
+  const exportToCSV = () => {
+    const headers = [
+      "ID",
+      "Circle New",
+      "Section New",
+      "Agendas",
+      "State",
+      "Cat",
+      "Weithage",
+      "Tgt",
+      "Ach",
+      "ACH %",
+      "Score",
+    ];
+    const csv = [
+      headers.join(","),
+      ...filteredData.map((row) =>
+        [
+          row.id,
+          row.circleNew,
+          row.sectionNew,
+          row.agendas,
+          row.state,
+          row.cat,
+          row.weithage,
+          row.tgt,
+          row.ach,
+          row.achPct,
+          row.score,
+        ].join(","),
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "dashboard-export.csv";
+    a.click();
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-cyan-50 to-blue-50 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-br from-purple-600 via-purple-500 to-cyan-500 px-6 pt-12 pb-8 rounded-b-3xl shadow-2xl">
-        <button
-          onClick={() => navigate('/variants')}
-          className="flex items-center gap-2 text-white/90 hover:text-white mb-6 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="text-sm font-medium">Back to Variants</span>
-        </button>
-
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center">
-            <Target className="w-8 h-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-white">KPI Dashboard</h1>
-            <p className="text-purple-100 text-sm font-medium">Real-time Performance Indicators</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Top KPI Cards */}
-      <div className="px-6 mt-6 grid grid-cols-2 gap-4">
-        {kpiCards.map((kpi, idx) => (
-          <div
-            key={idx}
-            className={`bg-gradient-to-br ${kpi.color} rounded-2xl p-5 shadow-xl relative overflow-hidden`}
-          >
-            <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
-            <div className="relative">
-              <div className="text-white/80 text-xs font-medium mb-2">{kpi.label}</div>
-              <div className="text-white font-bold text-3xl mb-1">{kpi.value}</div>
-              <div className="text-white/90 text-xs font-medium">{kpi.status}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Overall Score */}
-      <div className="px-6 mt-6">
-        <div className="bg-white rounded-3xl p-6 shadow-xl border border-purple-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-purple-900 flex items-center gap-2">
-              <Zap className="w-6 h-6 text-cyan-500" />
-              Overall Score
-            </h3>
-            <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-cyan-500 bg-clip-text text-transparent">
-              91
-            </div>
-          </div>
-          <div className="w-full h-4 bg-purple-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full transition-all"
-              style={{ width: '91%' }}
-            ></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Department Scores */}
-      <div className="px-6 mt-6">
-        <h3 className="text-lg font-bold text-purple-900 mb-4 flex items-center gap-2">
-          <Activity className="w-5 h-5 text-purple-600" />
-          Department Performance
-        </h3>
-        <div className="space-y-3">
-          {departments.map((dept, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-2xl p-5 shadow-lg border border-purple-100 hover:shadow-xl transition-shadow"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-purple-900">{dept.name}</h4>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold text-purple-600">{dept.score}</span>
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-white" />
-                  </div>
+    <div className="h-screen flex flex-col overflow-hidden bg-[#F5F7FA]">
+      <header className="bg-white border-b border-gray-200 shadow-sm z-40 shrink-0">
+        <div className="px-3 lg:px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {isMobile && (
+                <button className="p-2 hover:bg-gray-100 rounded transition-colors">
+                  <Menu className="h-5 w-5 text-gray-600" />
+                </button>
+              )}
+              <div className="flex items-center gap-2.5">
+                <div className="h-10 w-10 bg-[#D32F2F] rounded flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">
+                    ITC
+                  </span>
+                </div>
+                <div>
+                  <h1 className="text-base lg:text-lg font-bold text-gray-900 leading-tight">
+                    WD MDP
+                  </h1>
+                  <p className="text-[10px] lg:text-xs text-gray-600 leading-tight">
+                    Market Development Program
+                  </p>
+                  <p className="text-[9px] lg:text-[10px] text-gray-500 italic leading-tight">
+                    "Enduring Value"
+                  </p>
                 </div>
               </div>
-              <div className="w-full h-3 bg-purple-50 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-purple-500 to-cyan-500 rounded-full transition-all"
-                  style={{ width: `${dept.progress}%` }}
-                ></div>
-              </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Heatmap Style Widget */}
-      <div className="px-6 mt-6 mb-4">
-        <div className="bg-gradient-to-r from-purple-900 via-purple-700 to-cyan-700 rounded-3xl p-6 shadow-2xl">
-          <h4 className="text-white font-bold text-lg mb-4">Monthly Performance Heatmap</h4>
-          <div className="grid grid-cols-4 gap-2">
-            {[95, 88, 92, 87, 90, 93, 89, 94, 91, 88, 92, 96].map((val, idx) => (
-              <div
-                key={idx}
-                className={`aspect-square rounded-xl flex items-center justify-center ${
-                  val >= 90
-                    ? 'bg-cyan-400'
-                    : val >= 85
-                    ? 'bg-purple-400'
-                    : 'bg-purple-300'
-                }`}
-              >
-                <span className="text-white font-bold text-sm">{val}</span>
-              </div>
-            ))}
+            <div className="flex items-center gap-1.5 lg:gap-2">
+              {!isMobile && (
+                <>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      value={globalSearch}
+                      onChange={(e) =>
+                        setGlobalSearch(e.target.value)
+                      }
+                      className="w-48 lg:w-64 pl-9 pr-3 py-2 bg-white rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1976D2] focus:border-transparent transition-all text-sm"
+                    />
+                  </div>
+                  <button
+                    onClick={exportToCSV}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-[#1976D2] text-white rounded hover:bg-[#1565C0] transition-colors text-sm font-medium"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Export</span>
+                  </button>
+                </>
+              )}
+              <button className="p-2 hover:bg-gray-100 rounded transition-colors relative">
+                <Bell className="h-5 w-5 text-gray-600" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#D32F2F] rounded-full" />
+              </button>
+              <button className="p-1.5 hover:bg-gray-100 rounded transition-colors">
+                <div className="h-8 w-8 rounded-full bg-[#546E7A] flex items-center justify-center text-white text-sm font-semibold">
+                  U
+                </div>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
+
+      <AndroidFilters
+        filters={{
+          circles: {
+            selected: selectedCircles,
+            onChange: setSelectedCircles,
+          },
+          states: {
+            selected: selectedStates,
+            onChange: setSelectedStates,
+          },
+          categories: {
+            selected: selectedCategories,
+            onChange: setSelectedCategories,
+          },
+          agendas: {
+            selected: selectedAgendas,
+            onChange: setSelectedAgendas,
+          },
+          sections: {
+            selected: selectedSections,
+            onChange: setSelectedSections,
+          },
+        }}
+        filterOptions={filterOptions}
+        onClearAll={clearAllFilters}
+        activeFilterCount={activeFilterCount}
+      />
+
+      <main className="flex-1 overflow-hidden px-3 lg:px-4 py-3 lg:py-4">
+        {isLoading ? (
+          <div className="flex h-full items-center justify-center rounded border border-gray-200 bg-white text-sm text-gray-600">
+            Loading data from Supabase...
+          </div>
+        ) : (
+          <EnterpriseDataGrid data={filteredData} isMobile={isMobile} />
+        )}
+      </main>
     </div>
   );
 }

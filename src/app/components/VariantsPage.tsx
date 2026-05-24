@@ -20,9 +20,9 @@ const variants: Variant[] = [
     path: '/mdp',
   },
   {
-    id: 'kpi',
-    name: 'KPI',
-    description: 'Key Performance Indicator Dashboard',
+    id: 'Rise',
+    name: 'Rise',
+    description: 'Rise Dashboard',
     icon: BarChart3,
     gradient: 'from-purple-600 via-purple-500 to-cyan-500',
     path: '/kpi-dashboard',
