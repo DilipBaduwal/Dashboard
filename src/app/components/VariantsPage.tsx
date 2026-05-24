@@ -28,9 +28,9 @@ const variants: Variant[] = [
     path: '/kpi-dashboard',
   },
   {
-    id: 'sales',
-    name: 'Sales',
-    description: 'Sales and Revenue Tracking',
+    id: 'Rise summary',
+    name: 'Rise score summary',
+    description: 'Section and circle Level dashboard',
     icon: DollarSign,
     gradient: 'from-emerald-600 via-green-500 to-teal-400',
     path: '/sales-dashboard',
