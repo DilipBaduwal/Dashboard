@@ -97,7 +97,7 @@ export function EnterpriseDataGrid({ data, isMobile = false }: EnterpriseDataGri
 
   return (
     <div className="flex flex-col h-full bg-white border border-gray-200 overflow-hidden">
-      <div className="flex-1 overflow-auto overscroll-contain">
+      <div className="flex-1 overflow-auto overscroll-contain pb-36">
         <table className="w-full border-collapse">
           <thead className="sticky top-0 z-10 bg-[#1976D2] text-white">
             <tr className="border-b border-[#1565C0]">

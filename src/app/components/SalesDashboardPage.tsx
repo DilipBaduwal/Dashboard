@@ -5,29 +5,34 @@ import { supabase } from '../../lib/supabase';
 // Header Component
 function Header() {
   return (
-    <header className="bg-card border-b border-border px-4 py-3">
-      <div className="flex items-center justify-between">
+    <header className="bg-white border-b border-gray-200 px-3 lg:px-4 py-3 shadow-sm z-40">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-            <span className="text-primary font-semibold text-sm">ITC</span>
+          <div className="h-10 w-10 bg-[#D32F2F] rounded flex items-center justify-center">
+            <span className="text-white font-bold text-lg">ITC</span>
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-sm font-medium text-foreground leading-tight">WD MDP</h1>
-            <p className="text-xs text-muted-foreground leading-tight">Market Development Program</p>
-            <p className="text-[10px] text-muted-foreground/70 leading-tight">Enduring Value</p>
+          <div>
+            <h1 className="text-base lg:text-lg font-bold text-gray-900 leading-tight">RISE</h1>
+            <p className="text-[10px] lg:text-xs text-gray-600 leading-tight">Detailed Level Data.</p>
+            <p className="text-[9px] lg:text-[10px] text-gray-500 italic leading-tight">"Achieve more with RISE"</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button className="w-9 h-9 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
-            <Search className="w-5 h-5 text-muted-foreground" />
+        <div className="flex items-center gap-1.5 lg:gap-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search..."
+              className="w-40 lg:w-56 pl-9 pr-3 py-2 bg-white rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1976D2] focus:border-transparent transition-all text-sm"
+            />
+          </div>
+          <button className="p-2 hover:bg-gray-100 rounded transition-colors relative">
+            <Bell className="h-5 w-5 text-gray-600" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#D32F2F] rounded-full" />
           </button>
-          <button className="w-9 h-9 rounded-full hover:bg-muted flex items-center justify-center transition-colors relative">
-            <Bell className="w-5 h-5 text-muted-foreground" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full"></span>
-          </button>
-          <button className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="w-5 h-5 text-primary" />
+          <button className="p-1.5 hover:bg-gray-100 rounded transition-colors">
+            <div className="h-8 w-8 rounded-full bg-[#546E7A] flex items-center justify-center text-white text-sm font-semibold">U</div>
           </button>
         </div>
       </div>
@@ -396,13 +401,13 @@ function DataTable({ type, filters }: DataTableProps) {
         </button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto pb-24">
+      <div className="flex-1 min-h-0 overflow-y-auto pb-36">
         {loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             Loading Rise data...
           </div>
         ) : (
-        <div className="min-w-full pb-4">
+        <div className="min-w-full pb-8">
           <table className="w-full">
             <thead className="sticky top-0 bg-muted/50 backdrop-blur-sm z-10">
               <tr>
