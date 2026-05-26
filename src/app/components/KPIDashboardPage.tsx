@@ -254,13 +254,13 @@ export default function App() {
                 </div>
                 <div>
                   <h1 className="text-base lg:text-lg font-bold text-gray-900 leading-tight">
-                    WD MDP
+                    RISE
                   </h1>
                   <p className="text-[10px] lg:text-xs text-gray-600 leading-tight">
-                    Market Development Program
+                    Detailed Level Data.
                   </p>
                   <p className="text-[9px] lg:text-[10px] text-gray-500 italic leading-tight">
-                    "Enduring Value"
+                    "Achieve more with RISE"
                   </p>
                 </div>
               </div>
