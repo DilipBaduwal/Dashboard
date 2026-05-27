@@ -1,5 +1,13 @@
 import { useNavigate } from 'react-router';
-import { TrendingUp, BarChart3, DollarSign, Truck, Wallet, ArrowRight } from 'lucide-react';
+import {
+  TrendingUp,
+  BarChart3,
+  Truck,
+  Wallet,
+  ArrowRight,
+  DollarSign,
+  Package,
+} from 'lucide-react';
 
 interface Variant {
   id: string;
@@ -30,7 +38,7 @@ const variants: Variant[] = [
   {
     id: 'Rise summary',
     name: 'Rise-SC',
-    description: 'Section and circle Level dashboard',
+    description: 'Section and Circle Level Dashboard',
     icon: TrendingUp,
     gradient: 'from-emerald-600 via-green-500 to-teal-400',
     path: '/sales-dashboard',
@@ -51,6 +59,36 @@ const variants: Variant[] = [
     gradient: 'from-slate-900 via-slate-700 to-blue-900',
     path: '/finance-dashboard',
   },
+
+  // NEW SECTION 1
+  {
+    id: 'rack-billing',
+    name: 'Rack Billing',
+    description: 'Rack Billing Performance Dashboard',
+    icon: DollarSign,
+    gradient: 'from-pink-600 via-rose-500 to-orange-400',
+    path: '/rack-billing',
+  },
+
+  // NEW SECTION 2
+  {
+    id: 'sales-data',
+    name: 'Sales Data',
+    description: 'Sales Data Analytics Dashboard',
+    icon: BarChart3,
+    gradient: 'from-cyan-600 via-sky-500 to-blue-500',
+    path: '/sales-data',
+  },
+
+  // NEW SECTION 3
+  {
+    id: 'stockist',
+    name: 'Stockist',
+    description: 'Stockist Management Dashboard',
+    icon: Package,
+    gradient: 'from-indigo-700 via-violet-600 to-fuchsia-500',
+    path: '/stockist',
+  },
 ];
 
 export default function VariantsPage() {
@@ -58,56 +96,83 @@ export default function VariantsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F7FA] to-[#E8EDF5] pb-20">
+      
       {/* Header */}
       <div className="bg-gradient-to-br from-[#0B1F4D] via-[#1F4E79] to-[#0B1F4D] px-6 pt-16 pb-12 rounded-b-[3rem] shadow-2xl">
         <div className="text-center">
+          
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/10 backdrop-blur-md border-2 border-white/20 mb-4 shadow-xl">
             <BarChart3 className="w-10 h-10 text-[#00C2FF]" />
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Dashboard Suite</h1>
-          <p className="text-[#00C2FF] text-sm font-medium">Choose Dashboard Variant</p>
+
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Dashboard Suite
+          </h1>
+
+          <p className="text-[#00C2FF] text-sm font-medium">
+            Choose Dashboard Variant
+          </p>
+
         </div>
       </div>
 
-      {/* Variant Cards */}
-      <div className="px-6 mt-8 space-y-4">
+      {/* Cards */}
+      <div className="px-6 mt-8 space-y-5">
+
         {variants.map((variant) => {
           const Icon = variant.icon;
+
           return (
             <div
               key={variant.id}
               onClick={() => navigate(variant.path)}
-              className={`relative bg-gradient-to-r ${variant.gradient} rounded-3xl p-6 shadow-2xl cursor-pointer hover:scale-[1.02] transition-all overflow-hidden group`}
+              className={`relative bg-gradient-to-r ${variant.gradient} rounded-3xl p-6 shadow-2xl cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 overflow-hidden group`}
             >
-              {/* Background decorations */}
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20 group-hover:scale-110 transition-transform"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full -ml-16 -mb-16 group-hover:scale-110 transition-transform"></div>
+              
+              {/* Decorative circles */}
+              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20 group-hover:scale-110 transition-transform duration-500"></div>
 
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full -ml-16 -mb-16 group-hover:scale-110 transition-transform duration-500"></div>
+
+              {/* Main Content */}
               <div className="relative flex items-center justify-between">
+
                 <div className="flex items-center gap-4 flex-1">
+
+                  {/* Icon */}
                   <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm border-2 border-white/30 shadow-lg">
                     <Icon className="w-8 h-8 text-white" />
                   </div>
+
+                  {/* Text */}
                   <div className="flex-1">
-                    <h3 className="text-white font-bold text-2xl mb-1">{variant.name}</h3>
+
+                    <h3 className="text-white font-bold text-2xl mb-1">
+                      {variant.name}
+                    </h3>
+
                     <p className="text-white/90 text-sm font-medium leading-relaxed">
                       {variant.description}
                     </p>
+
                   </div>
                 </div>
+
+                {/* Arrow */}
                 <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center group-hover:bg-white/30 transition-all">
-                  <ArrowRight className="w-6 h-6 text-white group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight className="w-6 h-6 text-white group-hover:translate-x-1 transition-transform duration-300" />
                 </div>
+
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Info Footer */}
+      {/* Footer */}
       <div className="px-6 mt-8">
         <div className="bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white shadow-lg">
-          <p className="text-center text-sm text-gray-600">
+          <p className="text-center text-sm text-gray-600 font-medium">
             Select a dashboard variant to view performance metrics and analytics
           </p>
         </div>
