@@ -4,6 +4,8 @@ import { supabase } from '../../lib/supabase';
 
 type RiseRow = Record<string, unknown>;
 
+const SUPABASE_PAGE_SIZE = 1000;
+
 const toText = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim());
 const toNumber = (v: unknown) => {
   if (typeof v === 'number') return v;
@@ -29,6 +31,8 @@ const pickValue = (row: RiseRow, keys: string[]) => {
   return '';
 };
 
+const pickNumericValue = (row: RiseRow, keys: string[]) => toNumber(pickValue(row, keys));
+
 type SummaryRow = {
   label: string;
   sections?: string[];
@@ -49,57 +53,33 @@ const fallbackRiseRows: RiseRow[] = [
     'Circle New': 'North',
     'Section New': 'A1',
     'New WD Code': 'WD-1001',
-    Zero: 12,
-    '<1000': 32,
-    '1000-1500': 18,
-    '1500-2000': 8,
-    Achieved: 22,
-    'Grand Total': 92,
-    Active: 76,
-    'Non Active': 16,
-    'Above Six': 9,
+    'Achv Slabs-': '<1000',
+    Status: 'Active',
+    'Above 6': 1,
   },
   {
     'Circle New': 'North',
     'Section New': 'A2',
     'New WD Code': 'WD-1002',
-    Zero: 9,
-    '<1000': 24,
-    '1000-1500': 20,
-    '1500-2000': 10,
-    Achieved: 31,
-    'Grand Total': 94,
-    Active: 81,
-    'Non Active': 13,
-    'Above Six': 10,
+    'Achv Slabs-': '1000-1500',
+    Status: 'Active',
+    'Above 6': 0,
   },
   {
     'Circle New': 'South',
     'Section New': 'B1',
     'New WD Code': 'WD-1003',
-    Zero: 15,
-    '<1000': 28,
-    '1000-1500': 22,
-    '1500-2000': 14,
-    Achieved: 18,
-    'Grand Total': 97,
-    Active: 69,
-    'Non Active': 28,
-    'Above Six': 11,
+    'Achv Slabs-': 'Achieved',
+    Status: 'Non Active',
+    'Above 6': 2,
   },
   {
     'Circle New': 'South',
     'Section New': 'B2',
     'New WD Code': 'WD-1004',
-    Zero: 7,
-    '<1000': 19,
-    '1000-1500': 25,
-    '1500-2000': 12,
-    Achieved: 26,
-    'Grand Total': 89,
-    Active: 72,
-    'Non Active': 17,
-    'Above Six': 8,
+    'Achv Slabs-': 'Zero',
+    Status: 'Active',
+    'Above 6': 0,
   },
 ];
 
@@ -190,16 +170,37 @@ export default function RackBillingPage() {
     let activeFlag = true;
     const load = async () => {
       setLoading(true);
-      const { data, error } = await supabase.from('Rise').select('*').limit(1000);
-      if (!activeFlag) return;
-      const d = !error && data && data.length > 0 ? (data as RiseRow[]) : fallbackRiseRows;
-      setUsingFallback(Boolean(error) || !data || data.length === 0);
-      if (error) console.error(error);
+      const tableRows: RiseRow[] = [];
+      let from = 0;
+      let fetchError: string | null = null;
+
+      while (true) {
+        const to = from + SUPABASE_PAGE_SIZE - 1;
+        const { data, error } = await supabase.from('RackBilling').select('*').range(from, to);
+
+        if (error) {
+          fetchError = error.message;
+          break;
+        }
+
+        const page = (data ?? []) as RiseRow[];
+        tableRows.push(...page);
+
+        if (page.length < SUPABASE_PAGE_SIZE) {
+          break;
+        }
+
+        from += SUPABASE_PAGE_SIZE;
+      }
+
+      const d = tableRows.length > 0 ? tableRows : fallbackRiseRows;
       setRows(d);
+      setUsingFallback(Boolean(fetchError) || tableRows.length === 0);
+      if (fetchError) console.error(fetchError);
       setOptions({
-        circle_new: Array.from(new Set(d.map((r) => toText(pickValue(r, ['Circle New', 'circle_new', 'circle']))))).filter(Boolean).sort(),
-        section_new: Array.from(new Set(d.map((r) => toText(pickValue(r, ['Section New', 'section_new', 'section']))))).filter(Boolean).sort(),
-        new_wd_code: Array.from(new Set(d.map((r) => toText(pickValue(r, ['New WD Code', 'new_wd_code', 'wd_code', 'wdcode']))))).filter(Boolean).sort(),
+        circle_new: Array.from(new Set(d.map((r) => toText(pickValue(r, ['Circle New']))))).filter(Boolean).sort(),
+        section_new: Array.from(new Set(d.map((r) => toText(pickValue(r, ['Section New']))))).filter(Boolean).sort(),
+        new_wd_code: Array.from(new Set(d.map((r) => toText(pickValue(r, ['New WD Code']))))).filter(Boolean).sort(),
       });
       setLoading(false);
     };
@@ -208,16 +209,20 @@ export default function RackBillingPage() {
   }, []);
 
   const buckets = useMemo(() => [
-    { key: 'zero', labels: ['Zero', 'zero'] },
-    { key: 'lt1000', labels: ['<1000', 'lt1000'] },
-    { key: 'r1000_1500', labels: ['1000-1500', '1000_1500'] },
-    { key: 'r1500_2000', labels: ['1500-2000', '1500_2000'] },
-    { key: 'achieved', labels: ['Achieved', 'achieved'] },
-    { key: 'grand_total', labels: ['Grand Total', 'grand total', 'grand_total'] },
-    { key: 'active', labels: ['Active', 'active'] },
-    { key: 'non_active', labels: ['Non Active', 'non active', 'non_active'] },
-    { key: 'above_six', labels: ['Above Six', 'above six', 'above_six', 'above6'] },
+    { key: 'zero', labels: ['Zero'] },
+    { key: 'lt1000', labels: ['<1000'] },
+    { key: 'r1000_1500', labels: ['1000-1500'] },
+    { key: 'r1500_2000', labels: ['1500-2000'] },
+    { key: 'achieved', labels: ['Achieved'] },
   ], []);
+
+  const slabKeyByLabel = useMemo(() => ({
+    zero: 'Zero',
+    lt1000: '<1000',
+    r1000_1500: '1000-1500',
+    r1500_2000: '1500-2000',
+    achieved: 'Achieved',
+  }), []);
 
   const data = useMemo(() => {
     const filtered = rows.filter((r) => {
@@ -234,27 +239,35 @@ export default function RackBillingPage() {
 
     if (active === 'section') {
       for (const r of filtered) {
-        const label = toText(pickValue(r, ['Section New', 'section_new', 'section']));
+        const label = toText(pickValue(r, ['Section New']));
         if (!label) continue;
         const cur = map.get(label) ?? { label, zero: 0, lt1000: 0, r1000_1500: 0, r1500_2000: 0, achieved: 0, grand_total: 0, active: 0, non_active: 0, above_six: 0 } as SummaryRow;
-        for (const b of buckets) {
-          const v = toNumber(pickValue(r, b.labels));
-          (cur as any)[b.key] = ((cur as any)[b.key] ?? 0) + v;
-        }
+        const slab = toText(pickValue(r, ['Achv Slabs-', 'Achv Slabs']));
+        const slabKey = Object.entries(slabKeyByLabel).find(([, value]) => value.toLowerCase() === slab.toLowerCase())?.[0] as keyof SummaryRow | undefined;
+        if (slabKey) (cur as any)[slabKey] = ((cur as any)[slabKey] ?? 0) + 1;
+        const status = toText(pickValue(r, ['Status'])).toLowerCase();
+        if (status === 'active') cur.active += 1;
+        if (status === 'issue outlet' || status === 'non active' || status === 'inactive') cur.non_active += 1;
+        cur.grand_total += 1;
+        cur.above_six += toNumber(pickValue(r, ['Above 6']));
         map.set(label, cur);
       }
     } else {
       // wdcode grouping
       for (const r of filtered) {
-        const wd = toText(pickValue(r, ['New WD Code', 'new_wd_code', 'wd_code', 'wdcode']));
+        const wd = toText(pickValue(r, ['New WD Code']));
         if (!wd) continue;
-        const section = toText(pickValue(r, ['Section New', 'section_new', 'section']));
+        const section = toText(pickValue(r, ['Section New']));
         const cur = map.get(wd) ?? { label: wd, sections: [], zero: 0, lt1000: 0, r1000_1500: 0, r1500_2000: 0, achieved: 0, grand_total: 0, active: 0, non_active: 0, above_six: 0 } as SummaryRow;
         if (section && !cur.sections?.includes(section)) cur.sections = [...(cur.sections ?? []), section];
-        for (const b of buckets) {
-          const v = toNumber(pickValue(r, b.labels));
-          (cur as any)[b.key] = ((cur as any)[b.key] ?? 0) + v;
-        }
+        const slab = toText(pickValue(r, ['Achv Slabs-', 'Achv Slabs']));
+        const slabKey = Object.entries(slabKeyByLabel).find(([, value]) => value.toLowerCase() === slab.toLowerCase())?.[0] as keyof SummaryRow | undefined;
+        if (slabKey) (cur as any)[slabKey] = ((cur as any)[slabKey] ?? 0) + 1;
+        const status = toText(pickValue(r, ['Status'])).toLowerCase();
+        if (status === 'active') cur.active += 1;
+        if (status === 'issue outlet' || status === 'non active' || status === 'inactive') cur.non_active += 1;
+        cur.grand_total += 1;
+        cur.above_six += toNumber(pickValue(r, ['Above 6']));
         map.set(wd, cur);
       }
     }
@@ -262,11 +275,24 @@ export default function RackBillingPage() {
     const arr = Array.from(map.values());
     const grand = arr.reduce((acc, row) => {
       for (const b of buckets) (acc as any)[b.key] = ((acc as any)[b.key] ?? 0) + ((row as any)[b.key] ?? 0);
+      acc.grand_total += row.grand_total ?? 0;
+      acc.active += row.active ?? 0;
+      acc.non_active += row.non_active ?? 0;
+      acc.above_six += row.above_six ?? 0;
       return acc;
     }, { label: 'Grand Total', zero: 0, lt1000: 0, r1000_1500: 0, r1500_2000: 0, achieved: 0, grand_total: 0, active: 0, non_active: 0, above_six: 0 } as SummaryRow);
 
     return [...arr.sort((a, b) => String(a.label).localeCompare(String(b.label))), { ...grand, isGrandTotal: true }];
   }, [rows, filters, active, buckets]);
+
+  const summaryCounts = useMemo(() => {
+    const rowsOnly = data.filter((row) => !row.isGrandTotal);
+    const achievedCount = rowsOnly.reduce((sum, row) => sum + (row.achieved ?? 0), 0);
+    const aboveSixCount = rowsOnly.reduce((sum, row) => sum + (row.above_six ?? 0), 0);
+    const nonActiveCount = rowsOnly.reduce((sum, row) => sum + (row.non_active ?? 0), 0);
+
+    return { achievedCount, aboveSixCount, nonActiveCount };
+  }, [data]);
 
   const onNavigateToWdcode = (sectionLabel: string) => {
     setActive('wdcode');
@@ -306,10 +332,10 @@ export default function RackBillingPage() {
           <div className="rounded-[12px] border border-[rgba(203,213,225,0.7)] bg-white p-4 text-sm text-gray-500">Loading rack billing data...</div>
         ) : (
           <>
-            <div className="hidden grid-cols-1 gap-3 mb-3 sm:grid sm:grid-cols-3">
-              <MetricCard label="Zero" value={data.reduce((sum, r) => sum + (r.zero ?? 0), 0).toLocaleString()} />
-              <MetricCard label="Grand Total" value={data.reduce((sum, r) => sum + (r.grand_total ?? 0), 0).toLocaleString()} />
-              <MetricCard label="Achieved" value={data.reduce((sum, r) => sum + (r.achieved ?? 0), 0).toLocaleString()} />
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <MetricCard label="Achieve Count" value={summaryCounts.achievedCount.toLocaleString()} />
+              <MetricCard label="Above 6" value={summaryCounts.aboveSixCount.toLocaleString()} />
+              <MetricCard label="Non Active" value={summaryCounts.nonActiveCount.toLocaleString()} />
             </div>
 
             <div className="rounded-[12px] border border-[rgba(203,213,225,0.7)] bg-white overflow-hidden">
